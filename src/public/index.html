@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrawlScrap - Firecrawl-like Demo Tool</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+      margin-bottom: 30px;
+      border-radius: 8px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      opacity: 0.9;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-top: 10px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 1.2rem;
+      color: #667eea;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #555;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    input[type="number"] {
+      width: 100px;
+    }
+
+    select {
+      width: auto;
+      min-width: 200px;
+    }
+
+    /* Radio button group styling */
+    .radio-group {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .radio-option:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+
+    .radio-option.selected {
+      border-color: #667eea;
+      background: #f0f3ff;
+    }
+
+    .radio-option input[type="radio"] {
+      margin-right: 10px;
+      accent-color: #667eea;
+    }
+
+    .radio-option .option-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .radio-option .option-desc {
+      font-size: 0.85rem;
+      color: #666;
+      margin-left: 5px;
+    }
+
+    /* Checkbox styling */
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      accent-color: #667eea;
+    }
+
+    /* Form row with multiple inputs */
+    .form-row {
+      display: flex;
+      gap: 30px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .form-row .form-group {
+      margin-bottom: 0;
+    }
+
+    /* Disabled state */
+    .disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 10px;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .status.loading {
+      display: block;
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status.success {
+      display: block;
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.error {
+      display: block;
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #856404;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Results sections */
+    .results-section {
+      margin-bottom: 25px;
+    }
+
+    .results-section h3 {
+      font-size: 1rem;
+      color: #667eea;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .results-section h3 .count {
+      background: #667eea;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    .file-badge {
+      display: inline-block;
+      background: #e7f3ff;
+      color: #0066cc;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-family: monospace;
+      margin-bottom: 15px;
+    }
+
+    /* URL list for crawl results */
+    .url-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+    }
+
+    .url-item {
+      padding: 10px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .url-item:last-child {
+      border-bottom: none;
+    }
+
+    .url-item .depth-badge {
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .url-item .url {
+      color: #0066cc;
+      word-break: break-all;
+      font-size: 0.9rem;
+    }
+
+    /* Scrape results grid */
+    .results-grid {
+      display: grid;
+      gap: 15px;
+    }
+
+    .result-item {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 15px;
+    }
+
+    .result-item h4 {
+      font-size: 1rem;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .result-item .url {
+      font-size: 0.85rem;
+      color: #667eea;
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+
+    .result-item .headings {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .result-item .content-preview {
+      font-size: 0.85rem;
+      color: #777;
+      max-height: 100px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .result-item .content-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: linear-gradient(transparent, #f8f9fa);
+    }
+
+    .meta {
+      font-size: 0.8rem;
+      color: #999;
+      margin-top: 10px;
+    }
+
+    .summary {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .summary-item {
+      background: #667eea;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .summary-item .number {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .summary-item .label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .info-box h4 {
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+
+    .info-box p {
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    /* Progress Bar */
+    .progress-section {
+      margin-top: 20px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .progress-phase {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .progress-eta {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .progress-container {
+      background: #e0e0e0;
+      border-radius: 10px;
+      height: 20px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-details {
+      display: flex;
+      justify-content: space-around;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .progress-stat {
+      text-align: center;
+    }
+
+    .progress-stat .value {
+      font-weight: 600;
+      color: #333;
+      font-size: 1.1rem;
+    }
+
+    /* Validation Section */
+    .validation-card {
+      border-left: 4px solid #28a745;
+    }
+
+    .validation-card.has-issues {
+      border-left-color: #ffc107;
+    }
+
+    .validation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .validation-stat {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .validation-stat .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .validation-stat .label {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .validation-stat.success .value { color: #28a745; }
+    .validation-stat.warning .value { color: #ffc107; }
+    .validation-stat.danger .value { color: #dc3545; }
+
+    .validation-issues {
+      background: #fff3cd;
+      border-radius: 6px;
+      padding: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .validation-issues h4 {
+      color: #856404;
+      margin-bottom: 10px;
+    }
+
+    .validation-issues ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .validation-issues li {
+      font-size: 0.85rem;
+      color: #856404;
+      margin-bottom: 5px;
+    }
+
+    /* Filter Controls */
+    .filter-controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+
+    .filter-controls label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: normal;
+      font-size: 0.9rem;
+      margin-bottom: 0;
+    }
+
+    .filter-controls select,
+    .filter-controls input[type="number"] {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      width: auto;
+      min-width: 120px;
+    }
+
+    .filter-controls input[type="number"] {
+      width: 100px;
+    }
+
+    .filter-controls input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+
+    .filter-label {
+      font-weight: 600;
+      color: #667eea;
+      margin-right: 10px;
+    }
+
+    /* Enhanced URL item with metadata */
+    .url-item .status-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: bold;
+    }
+
+    .url-item .status-badge.success { background: #d4edda; color: #155724; }
+    .url-item .status-badge.failed { background: #f8d7da; color: #721c24; }
+
+    .url-item .link-type {
+      font-size: 0.75rem;
+      color: #666;
+      background: #e9ecef;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .url-item .meta-info {
+      font-size: 0.75rem;
+      color: #999;
+      margin-left: auto;
+    }
+
+    /* Enhanced result item with status */
+    .result-item.success { border-left: 4px solid #28a745; }
+    .result-item.failed { border-left: 4px solid #dc3545; background: #fff5f5; }
+
+    .result-item .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .result-item .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .result-item .status-badge.success { background: #d4edda; color: #155724; }
+    .result-item .status-badge.failed { background: #f8d7da; color: #721c24; }
+
+    .result-item .analysis-meta {
+      display: flex;
+      gap: 15px;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .radio-group {
+        flex-direction: column;
+      }
+      .form-row {
+        flex-direction: column;
+        gap: 15px;
+      }
+      .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .validation-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CrawlScrap Demo</h1>
+      <p>Firecrawl-like Evaluation Tool for Enterprise Systems</p>
+      <span class="badge">License-Safe | Self-Hosted | No AGPL/GPL</span>
+    </header>
+
+    <div class="card">
+      <h2>Processing Configuration</h2>
+
+      <div class="info-box">
+        <h4>Crawl vs Scrape</h4>
+        <p><strong>Crawling</strong> = URL discovery by following links (same domain only)<br>
+        <strong>Scraping</strong> = Content extraction (title, headings, text, links)</p>
+      </div>
+
+      <form id="processForm">
+        <!-- Seed URL -->
+        <div class="form-group">
+          <label for="seedUrl">Seed URL</label>
+          <input
+            type="text"
+            id="seedUrl"
+            name="seedUrl"
+            placeholder="https://example.com"
+            value="https://books.toscrape.com"
+            required
+          >
+        </div>
+
+        <!-- Operation Mode -->
+        <div class="form-group">
+          <label>Operation Mode</label>
+          <div class="radio-group" id="operationMode">
+            <label class="radio-option">
+              <input type="radio" name="operationMode" value="CRAWL_ONLY">
+              <span class="option-label">Crawl Only</span>
+              <span class="option-desc">- URL discovery</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="operationMode" value="SCRAPE_ONLY">
+              <span class="option-label">Scrape Only</span>
+              <span class="option-desc">- Content extraction</span>
+            </label>
+            <label class="radio-option selected">
+              <input type="radio" name="operationMode" value="CRAWL_AND_SCRAPE" checked>
+              <span class="option-label">Crawl + Scrape</span>
+              <span class="option-desc">- Both operations</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Subpage Control & Depth -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="includeSubpages" checked>
+              <span>Include Subpages</span>
+            </label>
+          </div>
+          <div class="form-group" id="depthGroup">
+            <label for="depth">Max Depth (0-5)</label>
+            <input
+              type="number"
+              id="depth"
+              name="depth"
+              min="0"
+              max="5"
+              value="1"
+            >
+          </div>
+        </div>
+
+        <!-- Output Format -->
+        <div class="form-group" id="outputFormatGroup">
+          <label for="outputFormat">Output Format</label>
+          <select id="outputFormat" name="outputFormat">
+            <option value="JSON">JSON (structured data)</option>
+            <option value="MARKDOWN">Markdown (human-readable)</option>
+            <option value="SUMMARY">Summary (AI-ready excerpts)</option>
+            <option value="LINKS_ONLY">Links Only (extracted URLs)</option>
+            <option value="HTML">HTML (cleaned structure)</option>
+          </select>
+        </div>
+
+        <button type="submit" id="submitBtn">Start Processing</button>
+      </form>
+
+      <div id="status" class="status"></div>
+
+      <!-- Progress Section -->
+      <div id="progressSection" class="progress-section" style="display: none;">
+        <div class="progress-header">
+          <span class="progress-phase" id="progressPhase">Initializing...</span>
+          <span class="progress-eta" id="progressEta">ETA: --</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-details">
+          <div class="progress-stat">
+            <div class="value" id="crawlProgress">0%</div>
+            <div>Crawling</div>
+          </div>
+          <div class="progress-stat">
+            <div class="value" id="scrapeProgress">0%</div>
+            <div>Scraping</div>
+          </div>
+          <div class="progress-stat">
+            <div class="value" id="overallProgress">0%</div>
+            <div>Overall</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Validation Results Section -->
+    <div id="validationSection" class="card validation-card" style="display: none;">
+      <h2>Validation Report</h2>
+      <div class="validation-grid" id="validationStats"></div>
+      <div id="validationIssues"></div>
+    </div>
+
+    <!-- Crawl Results Section -->
+    <div id="crawlResultsSection" class="card" style="display: none;">
+      <h2>Crawl Results (URL Discovery)</h2>
+      <div id="crawlFileBadge" class="file-badge"></div>
+
+      <!-- Crawl Filters -->
+      <div class="filter-controls" id="crawlFilters">
+        <span class="filter-label">Filter:</span>
+        <select id="crawlLinkTypeFilter">
+          <option value="all">All Link Types</option>
+          <option value="internal">Internal Only</option>
+          <option value="external">External Only</option>
+        </select>
+        <select id="crawlDepthFilter">
+          <option value="all">All Depths</option>
+        </select>
+        <select id="crawlStatusFilter">
+          <option value="all">All Status</option>
+          <option value="success">Success (200)</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+
+      <div class="results-section">
+        <h3>Discovered URLs <span id="urlCount" class="count">0</span></h3>
+        <div id="urlList" class="url-list"></div>
+      </div>
+    </div>
+
+    <!-- Scrape Results Section -->
+    <div id="scrapeResultsSection" class="card" style="display: none;">
+      <h2>Scrape Results (Content Extraction)</h2>
+      <div id="scrapeFileBadge" class="file-badge"></div>
+      <div id="scrapeSummary" class="summary"></div>
+
+      <!-- Scrape Filters -->
+      <div class="filter-controls" id="scrapeFilters">
+        <span class="filter-label">Filter:</span>
+        <select id="scrapeStatusFilter">
+          <option value="all">All Results</option>
+          <option value="success">Success Only</option>
+          <option value="failed">Failed Only</option>
+        </select>
+        <label>
+          Min Words:
+          <input type="number" id="minWordCount" min="0" placeholder="0">
+        </label>
+        <select id="scrapeLanguageFilter">
+          <option value="all">All Languages</option>
+        </select>
+        <label>
+          <input type="checkbox" id="missingTitleFilter">
+          Missing Title
+        </label>
+      </div>
+
+      <div class="results-section">
+        <h3>Extracted Content <span id="pageCount" class="count">0</span></h3>
+        <div id="scrapeResults" class="results-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const form = document.getElementById('processForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+    const progressSection = document.getElementById('progressSection');
+    const validationSection = document.getElementById('validationSection');
+    const crawlResultsSection = document.getElementById('crawlResultsSection');
+    const scrapeResultsSection = document.getElementById('scrapeResultsSection');
+
+    // Progress elements
+    const progressPhase = document.getElementById('progressPhase');
+    const progressEta = document.getElementById('progressEta');
+    const progressBar = document.getElementById('progressBar');
+    const crawlProgress = document.getElementById('crawlProgress');
+    const scrapeProgress = document.getElementById('scrapeProgress');
+    const overallProgress = document.getElementById('overallProgress');
+
+    // Form elements
+    const operationModeInputs = document.querySelectorAll('input[name="operationMode"]');
+    const includeSubpagesCheckbox = document.getElementById('includeSubpages');
+    const depthGroup = document.getElementById('depthGroup');
+    const depthInput = document.getElementById('depth');
+    const outputFormatGroup = document.getElementById('outputFormatGroup');
+    const outputFormatSelect = document.getElementById('outputFormat');
+
+    // Store current data for filtering
+    let currentCrawlData = null;
+    let currentScrapeData = null;
+    let pollInterval = null;
+
+    // Radio button styling
+    operationModeInputs.forEach(input => {
+      input.addEventListener('change', () => {
+        document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+        input.closest('.radio-option').classList.add('selected');
+        updateFormState();
+      });
+    });
+
+    // Include subpages checkbox handler
+    includeSubpagesCheckbox.addEventListener('change', updateFormState);
+
+    // Update form state based on selections
+    function updateFormState() {
+      const mode = document.querySelector('input[name="operationMode"]:checked').value;
+      const includeSubpages = includeSubpagesCheckbox.checked;
+
+      if (!includeSubpages || mode === 'SCRAPE_ONLY') {
+        depthGroup.classList.add('disabled');
+        depthInput.disabled = true;
+      } else {
+        depthGroup.classList.remove('disabled');
+        depthInput.disabled = false;
+      }
+
+      if (mode === 'CRAWL_ONLY') {
+        outputFormatGroup.classList.add('disabled');
+        outputFormatSelect.disabled = true;
+      } else {
+        outputFormatGroup.classList.remove('disabled');
+        outputFormatSelect.disabled = false;
+      }
+
+      if (mode === 'SCRAPE_ONLY') {
+        includeSubpagesCheckbox.disabled = true;
+        includeSubpagesCheckbox.closest('.checkbox-label').style.opacity = '0.5';
+      } else {
+        includeSubpagesCheckbox.disabled = false;
+        includeSubpagesCheckbox.closest('.checkbox-label').style.opacity = '1';
+      }
+    }
+
+    // Progress polling
+    function startProgressPolling(processId) {
+      progressSection.style.display = 'block';
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/progress/${processId}`);
+          if (res.ok) {
+            const progress = await res.json();
+            updateProgressUI(progress);
+            if (progress.phase === 'COMPLETED' || progress.phase === 'ERROR') {
+              stopProgressPolling();
+            }
+          }
+        } catch (e) {
+          console.error('Progress poll error:', e);
+        }
+      }, 500);
+    }
+
+    function stopProgressPolling() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
+
+    function updateProgressUI(progress) {
+      progressPhase.textContent = progress.phase;
+      progressEta.textContent = `ETA: ${progress.etaFormatted || '--'}`;
+      progressBar.style.width = `${progress.overallPercent}%`;
+      crawlProgress.textContent = `${progress.crawl.percent}%`;
+      scrapeProgress.textContent = `${progress.scrape.percent}%`;
+      overallProgress.textContent = `${progress.overallPercent}%`;
+    }
+
+    // Generate UUID (simple version for browser)
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // Form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const seedUrl = document.getElementById('seedUrl').value;
+      const operationMode = document.querySelector('input[name="operationMode"]:checked').value;
+      const includeSubpages = includeSubpagesCheckbox.checked;
+      const depth = parseInt(depthInput.value, 10);
+      const outputFormat = outputFormatSelect.value;
+
+      // Generate processId on frontend BEFORE making the request
+      const processId = generateUUID();
+
+      // Reset UI
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+      status.className = 'status loading';
+      status.innerHTML = '<span class="spinner"></span>Processing in progress...';
+      validationSection.style.display = 'none';
+      crawlResultsSection.style.display = 'none';
+      scrapeResultsSection.style.display = 'none';
+
+      // Start progress polling IMMEDIATELY (before fetch completes)
+      startProgressPolling(processId);
+
+      try {
+        // Include processId in the request body
+        const response = await fetch('/api/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seedUrl, includeSubpages, depth, operationMode, outputFormat, processId }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          stopProgressPolling();
+          progressSection.style.display = 'none';
+
+          let successMsg = 'Processing complete!<br>';
+          if (data.crawlOutput) {
+            successMsg += `Crawl: ${data.crawlOutput.urlsDiscovered} URLs → <strong>data/${data.crawlOutput.filename}</strong><br>`;
+          }
+          if (data.scrapeOutput) {
+            successMsg += `Scrape: ${data.scrapeOutput.pagesScraped} pages → <strong>data/${data.scrapeOutput.filename}</strong><br>`;
+          }
+          if (data.validation) {
+            successMsg += `Validation: ${data.validation.report.successRate} success rate`;
+          }
+
+          status.className = 'status success';
+          status.innerHTML = successMsg;
+
+          displayResults(data);
+        } else {
+          throw new Error(data.error || 'Processing failed');
+        }
+      } catch (error) {
+        stopProgressPolling();
+        progressSection.style.display = 'none';
+        status.className = 'status error';
+        status.innerHTML = `Error: ${error.message}`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Start Processing';
+      }
+    });
+
+    // Display results
+    function displayResults(data) {
+      // Display validation if available
+      if (data.validation) {
+        displayValidation(data.validation);
+      }
+
+      // Display crawl results
+      if (data.crawlOutput) {
+        currentCrawlData = data.crawlOutput.urls;
+        displayCrawlResults(data.crawlOutput);
+        setupCrawlFilters();
+      }
+
+      // Display scrape results
+      if (data.scrapeOutput) {
+        currentScrapeData = data.scrapeOutput.results;
+        displayScrapeResults(data.scrapeOutput);
+        setupScrapeFilters();
+      }
+
+      // Scroll to results
+      if (data.validation) {
+        validationSection.scrollIntoView({ behavior: 'smooth' });
+      } else if (data.crawlOutput) {
+        crawlResultsSection.scrollIntoView({ behavior: 'smooth' });
+      } else if (data.scrapeOutput) {
+        scrapeResultsSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // Display validation results
+    function displayValidation(validation) {
+      validationSection.style.display = 'block';
+      const report = validation.report;
+      const hasIssues = report.summary.hasFailures || report.summary.hasMissing;
+
+      validationSection.classList.toggle('has-issues', hasIssues);
+
+      document.getElementById('validationStats').innerHTML = `
+        <div class="validation-stat">
+          <div class="value">${report.totalCrawled}</div>
+          <div class="label">Crawled</div>
+        </div>
+        <div class="validation-stat">
+          <div class="value">${report.totalScraped}</div>
+          <div class="label">Scraped</div>
+        </div>
+        <div class="validation-stat success">
+          <div class="value">${report.successfulScrapes}</div>
+          <div class="label">Successful</div>
+        </div>
+        <div class="validation-stat ${report.failedScrapes.length > 0 ? 'danger' : ''}">
+          <div class="value">${report.failedScrapes.length}</div>
+          <div class="label">Failed</div>
+        </div>
+        <div class="validation-stat ${report.missingScrapes.length > 0 ? 'warning' : ''}">
+          <div class="value">${report.missingScrapes.length}</div>
+          <div class="label">Missing</div>
+        </div>
+        <div class="validation-stat success">
+          <div class="value">${report.successRate}</div>
+          <div class="label">Success Rate</div>
+        </div>
+      `;
+
+      let issuesHtml = '';
+      if (report.failedScrapes.length > 0) {
+        issuesHtml += `<div class="validation-issues"><h4>Failed Scrapes</h4><ul>${report.failedScrapes.slice(0, 5).map(f => `<li>${escapeHtml(f.url)}: ${escapeHtml(f.error)}</li>`).join('')}${report.failedScrapes.length > 5 ? `<li>...and ${report.failedScrapes.length - 5} more</li>` : ''}</ul></div>`;
+      }
+      if (report.missingScrapes.length > 0) {
+        issuesHtml += `<div class="validation-issues"><h4>Missing Scrapes</h4><ul>${report.missingScrapes.slice(0, 5).map(url => `<li>${escapeHtml(url)}</li>`).join('')}${report.missingScrapes.length > 5 ? `<li>...and ${report.missingScrapes.length - 5} more</li>` : ''}</ul></div>`;
+      }
+      document.getElementById('validationIssues').innerHTML = issuesHtml;
+    }
+
+    // Display crawl results with enhanced metadata
+    function displayCrawlResults(crawlOutput) {
+      crawlResultsSection.style.display = 'block';
+      document.getElementById('crawlFileBadge').textContent = `data/${crawlOutput.filename}`;
+      renderCrawlList(crawlOutput.urls);
+    }
+
+    function renderCrawlList(urls) {
+      document.getElementById('urlCount').textContent = urls.length;
+      document.getElementById('urlList').innerHTML = urls.map(item => `
+        <div class="url-item">
+          <span class="depth-badge">D${item.depth}</span>
+          <span class="status-badge ${item.statusCode >= 200 && item.statusCode < 400 ? 'success' : 'failed'}">${item.statusCode || '?'}</span>
+          <span class="link-type">${item.linkType || 'internal'}</span>
+          <span class="url">${escapeHtml(item.url)}</span>
+          <span class="meta-info">${item.crawlDurationMs || 0}ms</span>
+        </div>
+      `).join('');
+    }
+
+    // Display scrape results with enhanced metadata
+    function displayScrapeResults(scrapeOutput) {
+      scrapeResultsSection.style.display = 'block';
+      document.getElementById('scrapeFileBadge').textContent = `data/${scrapeOutput.filename}`;
+
+      const results = scrapeOutput.results;
+      const successCount = results.filter(r => r.metadata?.status === 'SUCCESS').length;
+      const totalWords = results.reduce((acc, r) => acc + (r.metadata?.wordCount || 0), 0);
+
+      document.getElementById('scrapeSummary').innerHTML = `
+        <div class="summary-item">
+          <div class="number">${results.length}</div>
+          <div class="label">Pages</div>
+        </div>
+        <div class="summary-item">
+          <div class="number">${successCount}</div>
+          <div class="label">Successful</div>
+        </div>
+        <div class="summary-item">
+          <div class="number">${totalWords.toLocaleString()}</div>
+          <div class="label">Total Words</div>
+        </div>
+        <div class="summary-item">
+          <div class="number">${results.reduce((acc, r) => acc + (r.links?.length || 0), 0)}</div>
+          <div class="label">Links</div>
+        </div>
+      `;
+
+      renderScrapeList(results);
+    }
+
+    function renderScrapeList(results) {
+      document.getElementById('pageCount').textContent = results.length;
+      document.getElementById('scrapeResults').innerHTML = results.map(result => {
+        const status = result.metadata?.status || 'SUCCESS';
+        const statusClass = status === 'SUCCESS' ? 'success' : 'failed';
+        return `
+          <div class="result-item ${statusClass}">
+            <div class="status-row">
+              <h4>${escapeHtml(result.title) || '(No title)'}</h4>
+              <span class="status-badge ${statusClass}">${status}</span>
+            </div>
+            <div class="url">${escapeHtml(result.url)}</div>
+            ${result.metadata?.errorMessage ? `<div class="error-msg" style="color:#dc3545;font-size:0.85rem;">${escapeHtml(result.metadata.errorMessage)}</div>` : ''}
+            ${result.headings?.length > 0 ? `<div class="headings"><strong>Headings:</strong> ${escapeHtml(result.headings.slice(0, 3).join(' | '))}${result.headings.length > 3 ? '...' : ''}</div>` : ''}
+            <div class="content-preview">${escapeHtml((result.content || '').substring(0, 300))}${result.content?.length > 300 ? '...' : ''}</div>
+            <div class="analysis-meta">
+              <span>Words: ${result.metadata?.wordCount || 0}</span>
+              <span>Lang: ${result.metadata?.language || 'en'}</span>
+              <span>Depth: ${result.metadata?.depth ?? 0}</span>
+              <span>Duration: ${result.metadata?.scrapeDurationMs || 0}ms</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Setup crawl filters
+    function setupCrawlFilters() {
+      if (!currentCrawlData) return;
+
+      // Populate depth filter
+      const depths = [...new Set(currentCrawlData.map(u => u.depth))].sort((a, b) => a - b);
+      const depthFilter = document.getElementById('crawlDepthFilter');
+      depthFilter.innerHTML = '<option value="all">All Depths</option>' + depths.map(d => `<option value="${d}">Depth ${d}</option>`).join('');
+
+      // Add filter event listeners
+      ['crawlLinkTypeFilter', 'crawlDepthFilter', 'crawlStatusFilter'].forEach(id => {
+        document.getElementById(id).addEventListener('change', applyCrawlFilters);
+      });
+    }
+
+    function applyCrawlFilters() {
+      if (!currentCrawlData) return;
+
+      const linkType = document.getElementById('crawlLinkTypeFilter').value;
+      const depth = document.getElementById('crawlDepthFilter').value;
+      const statusFilter = document.getElementById('crawlStatusFilter').value;
+
+      let filtered = currentCrawlData.filter(item => {
+        if (linkType !== 'all' && item.linkType !== linkType) return false;
+        if (depth !== 'all' && item.depth !== parseInt(depth)) return false;
+        if (statusFilter === 'success' && (item.statusCode < 200 || item.statusCode >= 400)) return false;
+        if (statusFilter === 'failed' && item.statusCode >= 200 && item.statusCode < 400) return false;
+        return true;
+      });
+
+      renderCrawlList(filtered);
+    }
+
+    // Setup scrape filters
+    function setupScrapeFilters() {
+      if (!currentScrapeData) return;
+
+      // Populate language filter
+      const languages = [...new Set(currentScrapeData.map(r => r.metadata?.language || 'en'))];
+      const langFilter = document.getElementById('scrapeLanguageFilter');
+      langFilter.innerHTML = '<option value="all">All Languages</option>' + languages.map(l => `<option value="${l}">${l.toUpperCase()}</option>`).join('');
+
+      // Add filter event listeners
+      ['scrapeStatusFilter', 'scrapeLanguageFilter'].forEach(id => {
+        document.getElementById(id).addEventListener('change', applyScrapeFilters);
+      });
+      document.getElementById('minWordCount').addEventListener('input', applyScrapeFilters);
+      document.getElementById('missingTitleFilter').addEventListener('change', applyScrapeFilters);
+    }
+
+    function applyScrapeFilters() {
+      if (!currentScrapeData) return;
+
+      const statusFilter = document.getElementById('scrapeStatusFilter').value;
+      const langFilter = document.getElementById('scrapeLanguageFilter').value;
+      const minWords = parseInt(document.getElementById('minWordCount').value) || 0;
+      const missingTitle = document.getElementById('missingTitleFilter').checked;
+
+      let filtered = currentScrapeData.filter(item => {
+        const status = item.metadata?.status || 'SUCCESS';
+        if (statusFilter === 'success' && status !== 'SUCCESS') return false;
+        if (statusFilter === 'failed' && status !== 'FAILED') return false;
+        if (langFilter !== 'all' && item.metadata?.language !== langFilter) return false;
+        if (minWords > 0 && (item.metadata?.wordCount || 0) < minWords) return false;
+        if (missingTitle && item.title) return false;
+        return true;
+      });
+
+      renderScrapeList(filtered);
+    }
+
+    // HTML escape helper
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initialize form state
+    updateFormState();
+  </script>
+</body>
+</html>

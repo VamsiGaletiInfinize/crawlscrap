@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Crawlee storage (generated during crawls)
+storage/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Data output (optional - uncomment to ignore)
+# data/*.json
+# data/*.md
+# data/*.html
+
+# Keep data directory structure
+!data/.gitkeep
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Test coverage
+coverage/

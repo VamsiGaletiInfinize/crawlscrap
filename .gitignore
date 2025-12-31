@@ -26,10 +26,12 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Data output (optional - uncomment to ignore)
-# data/*.json
-# data/*.md
-# data/*.html
+# Data output - ignore generated files
+data/*.json
+data/*.md
+data/*.html
+data/*.txt
+data/universities/
 
 # Keep data directory structure
 !data/.gitkeep

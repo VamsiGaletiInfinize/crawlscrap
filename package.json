@@ -2,12 +2,13 @@
   "name": "crawlscrap-demo",
   "version": "1.0.0",
   "description": "License-safe crawler + scraper demo using Crawlee and Playwright",
-  "main": "dist/index.js",
+  "main": "dist/server/index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "tsx watch server/index.ts",
+    "build": "tsc && npm run copy-client",
+    "copy-client": "node -e \"const fs = require('fs'); fs.cpSync('client', 'dist/client', {recursive: true});\"",
+    "start": "node dist/server/index.js"
   },
   "keywords": [
     "crawler",

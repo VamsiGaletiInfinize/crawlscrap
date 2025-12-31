@@ -29,10 +29,10 @@ import {
   CrawlOnlyResult,
   CrawlResult,
   DiscoveredUrl,
-} from '../crawler/crawler.js';
+} from '../../services/crawler.js';
 
 // Import scraper functions
-import { scrapeUrls, ScrapedContent } from '../crawler/scraper.js';
+import { scrapeUrls, ScrapedContent } from '../../services/scraper.js';
 
 // Import formatter
 import {
@@ -40,7 +40,7 @@ import {
   getFileExtension,
   OutputFormat,
   FormattedOutput,
-} from '../crawler/formatter.js';
+} from '../../services/formatter.js';
 
 // Import progress tracking
 import {
@@ -52,7 +52,7 @@ import {
   startValidationPhase,
   completeProgress,
   errorProgress,
-} from '../crawler/progress.js';
+} from '../../services/progress.js';
 
 // Import validation
 import {
@@ -60,7 +60,7 @@ import {
   saveValidationReport,
   generateValidationSummary,
   ValidationReport,
-} from '../crawler/validator.js';
+} from '../../services/validator.js';
 
 const router = Router();
 

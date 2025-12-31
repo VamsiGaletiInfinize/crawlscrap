@@ -673,6 +673,18 @@
       </div>
 
       <form id="processForm">
+        <!-- University Name (Optional) -->
+        <div class="form-group">
+          <label for="universityName">University Name (Optional)</label>
+          <input
+            type="text"
+            id="universityName"
+            name="universityName"
+            placeholder="e.g., Old Dominion University"
+          >
+          <small style="color: #666; font-size: 0.85rem;">Used for organizing output files by university</small>
+        </div>
+
         <!-- Seed URL -->
         <div class="form-group">
           <label for="seedUrl">Seed URL</label>
@@ -963,6 +975,7 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const universityName = document.getElementById('universityName').value.trim();
       const seedUrl = document.getElementById('seedUrl').value;
       const operationMode = document.querySelector('input[name="operationMode"]:checked').value;
       const includeSubpages = includeSubpagesCheckbox.checked;
@@ -976,7 +989,7 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'Processing...';
       status.className = 'status loading';
-      status.innerHTML = '<span class="spinner"></span>Processing in progress...';
+      status.innerHTML = '<span class="spinner"></span>Processing in progress...' + (universityName ? ` (${universityName})` : '');
       validationSection.style.display = 'none';
       crawlResultsSection.style.display = 'none';
       scrapeResultsSection.style.display = 'none';
@@ -985,11 +998,11 @@
       startProgressPolling(processId);
 
       try {
-        // Include processId in the request body
+        // Include processId and universityName in the request body
         const response = await fetch('/api/process', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ seedUrl, includeSubpages, depth, operationMode, outputFormat, processId }),
+          body: JSON.stringify({ seedUrl, includeSubpages, depth, operationMode, outputFormat, processId, universityName: universityName || undefined }),
         });
 
         const data = await response.json();

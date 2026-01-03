@@ -27,6 +27,11 @@ import {
   updateScrapeProgress,
   completeProgress,
 } from './progress.js';
+import { isUrlAllowed, fetchRobotsTxt } from './robotsTxt.js';
+import { getRateLimitConfig } from '../config/rateLimit.js';
+import { filterUrl, validateSeedUrl, isUniversityDomain, extractDomain } from './domainFilter.js';
+import { getDomainConfig } from '../config/domains.js';
+import { getCrawlerConfig } from '../config/crawler.js';
 
 /**
  * Options for crawl operations
@@ -138,6 +143,25 @@ export async function crawlUrls(
   const seedUrlObj = new URL(seedUrl);
   const allowedDomain = seedUrlObj.hostname;
 
+  // Pre-fetch robots.txt for the domain
+  const rateLimitConfig = getRateLimitConfig();
+  if (rateLimitConfig.respectRobotsTxt) {
+    console.log(`[CRAWLER] Fetching robots.txt for ${allowedDomain}...`);
+    await fetchRobotsTxt(seedUrl);
+  }
+
+  // Check if this is a university domain
+  const domainConfig = getDomainConfig();
+  const isUniDomain = isUniversityDomain(allowedDomain, domainConfig);
+  console.log(`[CRAWLER] University domain: ${isUniDomain ? 'Yes' : 'No'}`);
+
+  // Validate seed URL against domain filter
+  const seedValidation = validateSeedUrl(seedUrl, domainConfig);
+  if (!seedValidation.allowed) {
+    console.error(`[CRAWLER] Seed URL blocked: ${seedValidation.reason}`);
+    throw new Error(`Seed URL not allowed: ${seedValidation.reason}`);
+  }
+
   // If subpages are not included, just return the seed URL
   if (!includeSubpages) {
     console.log('[CRAWLER] Subpages disabled - returning seed URL only');
@@ -189,13 +213,20 @@ export async function crawlUrls(
     },
   });
 
-  // Create PlaywrightCrawler for URL discovery
+  // Get crawler configuration for LARGE-SCALE crawling
+  const crawlerCfg = getCrawlerConfig();
+  console.log(`[CRAWLER] Config: maxRequests=${crawlerCfg.maxRequestsPerCrawl}, concurrency=${crawlerCfg.maxConcurrency}, maxDepth=${crawlerCfg.maxDepth}`);
+
+  // Create PlaywrightCrawler for URL discovery - OPTIMIZED FOR 50k-150k PAGES
   const crawler = new PlaywrightCrawler(
     {
-      maxConcurrency: 2,
-      maxRequestsPerCrawl: 1000,
+      maxConcurrency: crawlerCfg.maxConcurrency,                 // 20 parallel pages
+      maxRequestsPerCrawl: crawlerCfg.maxRequestsPerCrawl,       // 200k URL limit
+      navigationTimeoutSecs: crawlerCfg.navigationTimeoutSecs,   // 30 second timeout
+      requestHandlerTimeoutSecs: crawlerCfg.requestHandlerTimeoutSecs,
+      maxRequestRetries: crawlerCfg.maxRequestRetries,
       launchContext: {
-        launchOptions: { headless: true },
+        launchOptions: { headless: crawlerCfg.headless },
       },
 
       // Request handler - discovers URLs and captures metadata
@@ -255,6 +286,13 @@ export async function crawlUrls(
               parentUrl: currentUrl, // Track parent for metadata
             },
             transformRequestFunction(req) {
+              // Use domain filter to validate URL
+              const filterResult = filterUrl(req.url, allowedDomain);
+              if (!filterResult.allowed) {
+                return false;
+              }
+
+              // Also ensure same domain (crawler should stay on seed domain)
               try {
                 const url = new URL(req.url);
                 if (url.hostname !== allowedDomain) {
@@ -371,6 +409,17 @@ export async function runCrawler(
   const seedUrlObj = new URL(seedUrl);
   const allowedDomain = seedUrlObj.hostname;
 
+  // Check if this is a university domain and validate seed URL
+  const domainCfg = getDomainConfig();
+  const isUniDomain = isUniversityDomain(allowedDomain, domainCfg);
+  console.log(`[CRAWLER] University domain: ${isUniDomain ? 'Yes' : 'No'}`);
+
+  const seedValidation = validateSeedUrl(seedUrl, domainCfg);
+  if (!seedValidation.allowed) {
+    console.error(`[CRAWLER] Seed URL blocked: ${seedValidation.reason}`);
+    throw new Error(`Seed URL not allowed: ${seedValidation.reason}`);
+  }
+
   // Store scraped results
   const results: ScrapedContent[] = [];
 
@@ -388,16 +437,23 @@ export async function runCrawler(
     },
   });
 
+  // Get crawler configuration for LARGE-SCALE crawling
+  const crawlerCfg = getCrawlerConfig();
+  console.log(`[CRAWLER] Config: maxRequests=${crawlerCfg.maxRequestsPerCrawl}, concurrency=${crawlerCfg.maxConcurrency}, maxDepth=${crawlerCfg.maxDepth}`);
+
   // Effective max depth based on includeSubpages setting
   const effectiveMaxDepth = includeSubpages ? maxDepth : 0;
 
-  // Create PlaywrightCrawler
+  // Create PlaywrightCrawler - OPTIMIZED FOR 50k-150k PAGES
   const crawler = new PlaywrightCrawler(
     {
-      maxConcurrency: 2,
-      maxRequestsPerCrawl: 1000,
+      maxConcurrency: crawlerCfg.maxConcurrency,                 // 20 parallel pages
+      maxRequestsPerCrawl: crawlerCfg.maxRequestsPerCrawl,       // 200k URL limit
+      navigationTimeoutSecs: crawlerCfg.navigationTimeoutSecs,   // 30 second timeout
+      requestHandlerTimeoutSecs: crawlerCfg.requestHandlerTimeoutSecs,
+      maxRequestRetries: crawlerCfg.maxRequestRetries,
       launchContext: {
-        launchOptions: { headless: true },
+        launchOptions: { headless: crawlerCfg.headless },
       },
 
       async requestHandler({ request, page, enqueueLinks, log, response }) {
@@ -445,6 +501,13 @@ export async function runCrawler(
               parentUrl: currentUrl,
             },
             transformRequestFunction(req) {
+              // Use domain filter to validate URL
+              const filterResult = filterUrl(req.url, allowedDomain);
+              if (!filterResult.allowed) {
+                return false;
+              }
+
+              // Also ensure same domain
               try {
                 const url = new URL(req.url);
                 if (url.hostname !== allowedDomain) {

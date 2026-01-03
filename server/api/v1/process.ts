@@ -32,7 +32,11 @@ import {
 } from '../../services/crawler.js';
 
 // Import scraper functions
-import { scrapeUrls, ScrapedContent } from '../../services/scraper.js';
+import { ScrapedContent } from '../../services/scraper.js';
+
+// Import worker pool for parallel scraping (5x faster)
+import { getWorkerPool, shutdownGlobalPool } from '../../workers/workerPool.js';
+import { getWorkerConfig } from '../../config/workers.js';
 
 // Import formatter
 import {
@@ -287,13 +291,23 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       console.log('[MODE] SCRAPE_ONLY - Content extraction without URL discovery');
       startScrapePhase(processId, 1);
 
-      // Scrape only the seed URL (no crawling)
-      const scrapeResults = await scrapeUrls([{ url: seedUrl, depth: 0 }], {
-        processId,
-        onProgress: (completed, total) => {
-          updateScrapeProgress(processId, completed, total);
-        },
+      // Use WorkerPool for parallel scraping (even for single URL, uses same infrastructure)
+      const workerConfig = getWorkerConfig();
+      const pool = getWorkerPool({
+        workers: 1, // Single worker for single URL
+        batchSize: workerConfig.batchSize,
+        headless: workerConfig.headless,
+        timeout: workerConfig.timeout,
+        concurrentPages: workerConfig.concurrentPages,
       });
+
+      // Scrape only the seed URL using worker pool
+      const scrapeResults = await pool.processUrls(
+        [{ url: seedUrl, depth: 0, parentUrl: null, statusCode: 200, contentType: 'text/html', discoveredAt: new Date().toISOString(), crawlDurationMs: 0, linkType: 'internal' as const }],
+        (completed, total) => {
+          updateScrapeProgress(processId, completed, total);
+        }
+      );
 
       // Format output
       const formatted = formatOutput(scrapeResults, outputFormat);
@@ -315,7 +329,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     // MODE: CRAWL_AND_SCRAPE
     // ------------------------------------------
     else if (operationMode === 'CRAWL_AND_SCRAPE') {
-      console.log('[MODE] CRAWL_AND_SCRAPE - URL Discovery + Content extraction');
+      console.log('[MODE] CRAWL_AND_SCRAPE - URL Discovery + Content extraction (with WorkerPool)');
 
       // PHASE 1: Crawl (URL Discovery)
       console.log('\n[PHASE 1] Starting URL discovery...');
@@ -337,16 +351,31 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
       console.log(`[PHASE 1 COMPLETE] Crawl output saved to: data/${crawlFilename}`);
 
-      // PHASE 2: Scrape (Content Extraction)
-      console.log('\n[PHASE 2] Starting content extraction...');
+      // PHASE 2: Scrape (Content Extraction) - Using WorkerPool for 5x speedup!
+      console.log('\n[PHASE 2] Starting PARALLEL content extraction with WorkerPool...');
       startScrapePhase(processId, crawlResult.discoveredUrls.length);
 
-      const scrapeResults = await scrapeUrls(crawlResult.discoveredUrls, {
-        processId,
-        onProgress: (completed, total) => {
-          updateScrapeProgress(processId, completed, total);
-        },
+      // Initialize worker pool with optimal settings for MAXIMUM PARALLELISM
+      // 8 workers × 10 concurrent pages = 80 parallel page loads!
+      const workerConfig = getWorkerConfig();
+      const pool = getWorkerPool({
+        workers: workerConfig.workers,             // 8 parallel browser instances
+        batchSize: workerConfig.batchSize,         // 50 URLs per batch
+        headless: workerConfig.headless,
+        timeout: workerConfig.timeout,
+        concurrentPages: workerConfig.concurrentPages, // 10 concurrent pages per worker
       });
+
+      const totalConcurrency = workerConfig.workers * workerConfig.concurrentPages;
+      console.log(`[POOL] Using ${workerConfig.workers} workers × ${workerConfig.concurrentPages} pages = ${totalConcurrency} parallel connections for ${crawlResult.discoveredUrls.length} URLs`);
+
+      // Process URLs in parallel using worker pool
+      const scrapeResults = await pool.processUrls(
+        crawlResult.discoveredUrls,
+        (completed, total) => {
+          updateScrapeProgress(processId, completed, total);
+        }
+      );
 
       // Format output
       const formatted = formatOutput(scrapeResults, outputFormat);

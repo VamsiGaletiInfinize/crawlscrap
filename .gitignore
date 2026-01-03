@@ -32,6 +32,7 @@ data/*.md
 data/*.html
 data/*.txt
 data/universities/
+data/jobs/
 
 # Keep data directory structure
 !data/.gitkeep

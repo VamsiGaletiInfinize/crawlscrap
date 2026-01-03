@@ -1,0 +1,82 @@
+# Docker Compose for CrawlScrap Development
+#
+# Usage:
+#   Start all:       docker-compose up -d
+#   Start Redis:     docker-compose up -d redis
+#   Start Postgres:  docker-compose up -d postgres
+#   Stop all:        docker-compose down
+#   View logs:       docker-compose logs -f
+#   Redis CLI:       docker-compose exec redis redis-cli
+#   Postgres CLI:    docker-compose exec postgres psql -U crawler -d crawlscrap
+#
+# The server will automatically connect to Redis and PostgreSQL when available.
+# If services are not running, it falls back to in-memory/file-based mode.
+
+services:
+  # Redis for BullMQ job queue
+  redis:
+    image: redis:7-alpine
+    container_name: crawlscrap-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Optional: Redis Commander for web-based Redis management
+  # Uncomment to enable - access at http://localhost:8081
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: crawlscrap-redis-commander
+  #   environment:
+  #     - REDIS_HOSTS=local:redis:6379
+  #   ports:
+  #     - "8081:8081"
+  #   depends_on:
+  #     - redis
+  #   restart: unless-stopped
+
+  # PostgreSQL for persistent job and content storage
+  postgres:
+    image: postgres:16-alpine
+    container_name: crawlscrap-postgres
+    environment:
+      POSTGRES_DB: crawlscrap
+      POSTGRES_USER: crawler
+      POSTGRES_PASSWORD: crawlscrap123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crawler -d crawlscrap"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Optional: pgAdmin for web-based PostgreSQL management
+  # Uncomment to enable - access at http://localhost:5050
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: crawlscrap-pgadmin
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@crawlscrap.local
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - postgres
+  #   restart: unless-stopped
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local

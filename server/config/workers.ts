@@ -28,21 +28,25 @@ export interface WorkerPoolConfig {
 }
 
 /**
- * Default worker pool configuration - OPTIMIZED FOR MAXIMUM SPEED
+ * Default worker pool configuration - OPTIMIZED FOR STABILITY
  *
- * - 8 workers: 8 parallel browser instances (~4GB RAM)
- * - 10 concurrent pages: 10 tabs per browser
- * - Total parallelism: 8 × 10 = 80 simultaneous page loads!
- * - 50 batch size: Smaller batches for better progress tracking
- * - 45s timeout: Allow slow pages to load fully
+ * MEMORY-SAFE CONFIGURATION:
+ * - 4 workers: 4 parallel browser instances (~2GB RAM)
+ * - 5 concurrent pages: 5 tabs per browser
+ * - Total parallelism: 4 × 5 = 20 simultaneous page loads
+ * - 30 batch size: Smaller batches for memory efficiency
+ * - 45s timeout: Allow slow JS-heavy pages to load
+ *
+ * This configuration prevents memory overload on 8GB systems
+ * while still providing significant parallelism.
  */
 export const workerConfig: WorkerPoolConfig = {
-  workers: 8,
-  batchSize: 50,
+  workers: 4,              // Reduced from 8 for memory safety
+  batchSize: 30,           // Reduced from 50 for memory efficiency
   headless: true,
   timeout: 45000,
   minUrlsForParallel: 5,
-  concurrentPages: 10,
+  concurrentPages: 5,      // Reduced from 10 for memory safety
 };
 
 /**

@@ -202,6 +202,8 @@ async function startServer() {
 ║   Database:  ${dbStatus.padEnd(44)}║
 ║   Cache:     ${redisStatus.padEnd(44)}║
 ║                                                                      ║
+║   Optimized: Memory-safe concurrency, adaptive rendering             ║
+║                                                                      ║
 ║   API Endpoints:                                                     ║
 ║   - POST /api/process      - Crawl + Scrape (with WorkerPool)        ║
 ║   - GET  /api/progress/:id - Real-time progress                      ║

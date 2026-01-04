@@ -31,7 +31,63 @@ import { isUrlAllowed, fetchRobotsTxt } from './robotsTxt.js';
 import { getRateLimitConfig } from '../config/rateLimit.js';
 import { filterUrl, validateSeedUrl, isUniversityDomain, extractDomain } from './domainFilter.js';
 import { getDomainConfig } from '../config/domains.js';
-import { getCrawlerConfig } from '../config/crawler.js';
+import { getCrawlerConfig, type RenderingMode } from '../config/crawler.js';
+import type { Page } from 'playwright';
+
+/**
+ * Wait for page to load using adaptive rendering strategy
+ *
+ * Rendering modes:
+ * - 'fast': domcontentloaded only (fastest, may miss JS content)
+ * - 'complete': networkidle (slowest, waits for all JS)
+ * - 'adaptive': tries fast first, falls back to complete if content is minimal
+ *
+ * @param page - Playwright page instance
+ * @param mode - Rendering mode to use
+ * @param minContentLength - Minimum content length for adaptive mode
+ * @param log - Logger instance
+ */
+async function waitForPageLoad(
+  page: Page,
+  mode: RenderingMode,
+  minContentLength: number,
+  log?: { info: (msg: string) => void }
+): Promise<void> {
+  if (mode === 'fast') {
+    // Fast mode: just wait for DOM
+    await page.waitForLoadState('domcontentloaded');
+    return;
+  }
+
+  if (mode === 'complete') {
+    // Complete mode: wait for network idle
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 15000 });
+    } catch {
+      // Fallback to domcontentloaded if networkidle times out
+      await page.waitForLoadState('domcontentloaded');
+    }
+    return;
+  }
+
+  // Adaptive mode: try fast first, then check content
+  await page.waitForLoadState('domcontentloaded');
+
+  // Check if content is minimal (likely JS-heavy page)
+  const bodyText = await page.evaluate(() => document.body?.innerText || '');
+  const contentLength = bodyText.length;
+
+  if (contentLength < minContentLength) {
+    // Content is minimal, wait for more JS to load
+    log?.info(`[ADAPTIVE] Minimal content (${contentLength} chars), waiting for JS...`);
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 10000 });
+    } catch {
+      // networkidle timed out, continue with what we have
+      log?.info(`[ADAPTIVE] networkidle timed out, continuing with current content`);
+    }
+  }
+}
 
 /**
  * Options for crawl operations
@@ -260,8 +316,8 @@ export async function crawlUrls(
           linkType: determineLinkType(currentUrl, allowedDomain),
         };
 
-        // Wait for page to load
-        await page.waitForLoadState('domcontentloaded');
+        // Wait for page to load using adaptive rendering
+        await waitForPageLoad(page, crawlerCfg.renderingMode, crawlerCfg.minContentLength, log);
 
         // Update timing
         discoveredUrl.crawlDurationMs = Date.now() - pageStartTime;
@@ -473,7 +529,8 @@ export async function runCrawler(
 
         log.info(`[CRAWL] [depth=${depth}] [${statusCode}]: ${currentUrl}`);
 
-        await page.waitForLoadState('domcontentloaded');
+        // Wait for page to load using adaptive rendering
+        await waitForPageLoad(page, crawlerCfg.renderingMode, crawlerCfg.minContentLength, log);
 
         // SCRAPE: Extract content with metadata
         log.info(`[SCRAPE] Extracting: ${currentUrl}`);

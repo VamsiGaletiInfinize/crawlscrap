@@ -33,17 +33,25 @@ export interface RateLimitConfig {
 
 /**
  * Default rate limit configuration
- * OPTIMIZED FOR MAXIMUM SPEED - Minimal delays, high concurrency
+ * OPTIMIZED FOR STABILITY - Conservative pacing for heavy JS sites
+ *
+ * University websites often have:
+ * - Heavy JavaScript rendering
+ * - Rate limiting / DDoS protection
+ * - Complex single-page applications
+ *
+ * Conservative pacing prevents triggering rate limits and ensures
+ * pages have time to fully render before extraction.
  */
 export const rateLimitConfig: RateLimitConfig = {
-  defaultDelayMs: 50,             // 50ms between requests (very fast)
-  minDelayMs: 0,                  // No minimum delay
+  defaultDelayMs: 200,            // 200ms between requests (polite)
+  minDelayMs: 100,                // 100ms minimum delay
   maxDelayMs: 2000,               // Maximum 2 second delay
-  respectRobotsTxt: true,         // Still respect robots.txt
+  respectRobotsTxt: true,         // Respect robots.txt
   userAgent: 'CrawlScrap/1.0 (+https://github.com/crawlscrap)',
   robotsTxtCacheTtl: 3600000,     // Cache robots.txt for 1 hour
-  maxConcurrentPerDomain: 20,     // Allow 20 concurrent requests per domain
-  robotsTxtTimeout: 3000,         // 3 second timeout for robots.txt
+  maxConcurrentPerDomain: 5,      // 5 concurrent per domain (reduced from 20)
+  robotsTxtTimeout: 5000,         // 5 second timeout for robots.txt
 };
 
 /**

@@ -8,6 +8,14 @@
  * This is separate from the worker pool which handles SCRAPING.
  */
 
+/**
+ * Rendering mode for page loading
+ * - 'fast': Uses domcontentloaded (faster, may miss JS-rendered content)
+ * - 'complete': Uses networkidle (slower, waits for all JS to finish)
+ * - 'adaptive': Tries fast first, falls back to complete if content is minimal
+ */
+export type RenderingMode = 'fast' | 'complete' | 'adaptive';
+
 export interface CrawlerConfig {
   // Maximum total URLs to crawl per session
   // Set high for university-scale crawling
@@ -39,33 +47,54 @@ export interface CrawlerConfig {
   // Helps with rate limiting and server politeness
   minConcurrencyDelayMs: number;
   maxConcurrencyDelayMs: number;
+
+  // Rendering mode for page loading
+  renderingMode: RenderingMode;
+
+  // Minimum content length (chars) to consider page loaded
+  // Used in adaptive mode to determine if JS rendering is needed
+  minContentLength: number;
 }
 
 /**
- * Default crawler configuration - OPTIMIZED FOR LARGE-SCALE CRAWLING
+ * Default crawler configuration - OPTIMIZED FOR STABILITY & PERFORMANCE
  *
  * Target: 50,000 - 150,000 pages per crawl session
  *
+ * OPTIMIZED FOR:
+ * - Heavy JavaScript websites (university sites)
+ * - Memory-safe operation (stays under 8GB)
+ * - Timeout resilience (45s for slow-loading pages)
+ * - Fast failure (1 retry to avoid queue buildup)
+ *
  * Memory estimate:
- * - 20 concurrent pages × ~100MB = ~2GB for URL discovery
+ * - 10 concurrent pages × ~100MB = ~1GB for URL discovery
  * - Plus worker pool memory for scraping
  */
 export const crawlerConfig: CrawlerConfig = {
   maxRequestsPerCrawl: 200000,     // 200k URL limit (supports 150k target)
-  maxConcurrency: 20,              // 20 parallel pages for discovery
-  navigationTimeoutSecs: 30,       // 30 second page load timeout
+  maxConcurrency: 10,              // 10 parallel pages (reduced from 20 for memory)
+  navigationTimeoutSecs: 45,       // 45 second timeout (increased for JS-heavy sites)
   requestHandlerTimeoutSecs: 60,   // 60 second handler timeout
   maxDepth: 5,                     // Depth 5 for comprehensive crawling
   headless: true,
-  maxRequestRetries: 2,            // Retry failed requests twice
-  minConcurrencyDelayMs: 0,        // No artificial delay
-  maxConcurrencyDelayMs: 0,        // No artificial delay
+  maxRequestRetries: 1,            // Fast fail - 1 retry only (reduced from 2)
+  minConcurrencyDelayMs: 50,       // 50ms minimum delay between requests
+  maxConcurrencyDelayMs: 200,      // 200ms max delay for pacing
+  renderingMode: 'adaptive',       // Adaptive: fast first, complete if minimal content
+  minContentLength: 500,           // Min 500 chars to consider page loaded
 };
 
 /**
  * Get crawler configuration with environment variable overrides
  */
 export function getCrawlerConfig(): CrawlerConfig {
+  const renderingModeEnv = process.env.CRAWLER_RENDERING_MODE as RenderingMode | undefined;
+  const validModes: RenderingMode[] = ['fast', 'complete', 'adaptive'];
+  const renderingMode = renderingModeEnv && validModes.includes(renderingModeEnv)
+    ? renderingModeEnv
+    : crawlerConfig.renderingMode;
+
   return {
     maxRequestsPerCrawl: parseInt(
       process.env.CRAWLER_MAX_REQUESTS || String(crawlerConfig.maxRequestsPerCrawl),
@@ -100,39 +129,50 @@ export function getCrawlerConfig(): CrawlerConfig {
       process.env.CRAWLER_MAX_DELAY_MS || String(crawlerConfig.maxConcurrencyDelayMs),
       10
     ),
+    renderingMode,
+    minContentLength: parseInt(
+      process.env.CRAWLER_MIN_CONTENT_LENGTH || String(crawlerConfig.minContentLength),
+      10
+    ),
   };
 }
 
 /**
  * Presets for different crawl scales
+ * All optimized for stability with JS-heavy sites
  */
 export const CRAWLER_PRESETS = {
   // Small site: up to 1,000 pages
   SMALL: {
     maxRequestsPerCrawl: 1000,
-    maxConcurrency: 5,
+    maxConcurrency: 3,
     maxDepth: 2,
+    maxRequestRetries: 1,
   },
 
   // Medium site: up to 10,000 pages
   MEDIUM: {
     maxRequestsPerCrawl: 10000,
-    maxConcurrency: 10,
+    maxConcurrency: 5,
     maxDepth: 3,
+    maxRequestRetries: 1,
   },
 
-  // Large site: up to 50,000 pages (default)
+  // Large site: up to 50,000 pages
   LARGE: {
     maxRequestsPerCrawl: 50000,
-    maxConcurrency: 15,
+    maxConcurrency: 8,
     maxDepth: 4,
+    maxRequestRetries: 1,
   },
 
-  // University-scale: up to 200,000 pages
+  // University-scale: up to 200,000 pages (memory-optimized)
   UNIVERSITY: {
     maxRequestsPerCrawl: 200000,
-    maxConcurrency: 20,
+    maxConcurrency: 10,
     maxDepth: 5,
+    maxRequestRetries: 1,
+    renderingMode: 'adaptive' as RenderingMode,
   },
 } as const;
 

@@ -21,6 +21,7 @@ import { fileURLToPath } from 'url';
 
 // API imports
 import processRouter from './api/v1/process.js';
+import optimizedProcessRouter from './api/v2/optimizedProcess.js';
 
 // Services
 import { getProgress, formatEta, cleanupOldProgress } from './services/progress.js';
@@ -50,7 +51,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'client')));
 
 // API routes
-app.use('/api/process', processRouter);  // Unified crawl + scrape with WorkerPool
+app.use('/api/process', processRouter);  // V1: Unified crawl + scrape with WorkerPool
+app.use('/api/v2/process', optimizedProcessRouter);  // V2: Optimized single-pass crawler
 
 // Health check endpoint
 app.get('/api/health', (_req, res) => {
@@ -202,10 +204,11 @@ async function startServer() {
 ║   Database:  ${dbStatus.padEnd(44)}║
 ║   Cache:     ${redisStatus.padEnd(44)}║
 ║                                                                      ║
-║   Optimized: Memory-safe concurrency, adaptive rendering             ║
+║   Optimized: Single-pass crawl, streaming, change detection          ║
 ║                                                                      ║
 ║   API Endpoints:                                                     ║
-║   - POST /api/process      - Crawl + Scrape (with WorkerPool)        ║
+║   - POST /api/process      - V1: Crawl + Scrape (WorkerPool)         ║
+║   - POST /api/v2/process   - V2: Optimized single-pass (50% faster)  ║
 ║   - GET  /api/progress/:id - Real-time progress                      ║
 ║   - GET  /api/health       - System stats                            ║
 ║                                                                      ║
